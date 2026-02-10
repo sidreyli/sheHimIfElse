@@ -13,10 +13,7 @@ interface UseGestureClassifierResult {
   result: WordResult | null;
   isModelReady: boolean;
   modelError: string | null;
-  pushFrame: (
-    leftHand: number[][] | null,
-    rightHand: number[][] | null
-  ) => WordResult | null;
+  pushFrame: (frame: Float32Array) => Promise<WordResult | null>;
 }
 
 export function useGestureClassifier(config: ASLConfig): UseGestureClassifierResult {
@@ -46,10 +43,10 @@ export function useGestureClassifier(config: ASLConfig): UseGestureClassifierRes
   }, [config.enabled]);
 
   const pushFrame = useCallback(
-    (leftHand: number[][] | null, rightHand: number[][] | null): WordResult | null => {
+    async (frame: Float32Array): Promise<WordResult | null> => {
       if (!isModelReady || !config.enabled) return null;
 
-      const prediction = bufferRef.current.pushFrame(leftHand, rightHand);
+      const prediction = await bufferRef.current.pushFrame(frame);
       if (prediction) {
         setResult(prediction);
         return prediction;

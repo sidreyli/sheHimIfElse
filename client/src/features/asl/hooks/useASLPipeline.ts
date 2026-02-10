@@ -2,7 +2,8 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import type { NormalizedLandmark } from '@mediapipe/tasks-vision';
 import type { ASLConfig } from '../../../types/asl';
 import { eventBus } from '../../../utils/eventBus';
-import { initHandLandmarker, detectHands, destroyHandLandmarker } from '../services/mediapipeService';
+import { initAllLandmarkers, detectAll, destroyAllLandmarkers } from '../services/mediapipeService';
+import { assembleFrame, resetAssemblerCache } from '../services/landmarkAssembler';
 import { GestureBuffer } from '../services/gestureBuffer';
 import { loadModel, disposeModel } from '../services/classifierService';
 import { SEQ_LEN } from '../models/labelMap';
@@ -14,7 +15,7 @@ interface UseASLPipelineResult {
   topPredictions: { word: string; confidence: number }[];
   isRunning: boolean;
   isLoading: boolean;
-  bufferProgress: number; // 0-1 how full the frame buffer is
+  bufferProgress: number;
   error: string | null;
   start: () => void;
   stop: () => void;
@@ -36,64 +37,74 @@ export function useASLPipeline(
   const activeRef = useRef(false);
   const rafId = useRef(0);
   const bufferRef = useRef(new GestureBuffer(config.confidenceThreshold));
+  const classifyingRef = useRef(false);
+  const landmarksRef = useRef<NormalizedLandmark[][] | null>(null);
+  const lastLandmarkUpdate = useRef(0);
+  const LANDMARK_UPDATE_INTERVAL = 50;
 
-  // Keep buffer in sync with config
   useEffect(() => {
     bufferRef.current.setConfidenceThreshold(config.confidenceThreshold);
     bufferRef.current.setWindowSize(config.smoothingWindow);
   }, [config.confidenceThreshold, config.smoothingWindow]);
 
   const processFrame = useCallback(() => {
-    if (!activeRef.current || !videoRef.current) return;
+    if (!activeRef.current) return;
 
-    const result = detectHands(videoRef.current);
+    if (!videoRef.current || videoRef.current.readyState < 2) {
+      rafId.current = requestAnimationFrame(processFrame);
+      return;
+    }
 
-    if (result && result.landmarks.length > 0) {
-      setLandmarks(result.landmarks);
+    const result = detectAll(videoRef.current);
 
-      // Extract left and right hand landmarks as number[][]
-      // MediaPipe returns hands in detection order, not left/right order.
-      // For simplicity, treat first hand as left, second as right.
-      const hand0 = result.landmarks[0]?.map((l) => [l.x, l.y, l.z]) ?? null;
-      const hand1 = result.landmarks[1]?.map((l) => [l.x, l.y, l.z]) ?? null;
+    if (result && result.hands && result.hands.landmarks.length > 0) {
+      // Update hand landmarks for overlay rendering (throttled)
+      landmarksRef.current = result.hands.landmarks;
+      const now = performance.now();
+      if (now - lastLandmarkUpdate.current >= LANDMARK_UPDATE_INTERVAL) {
+        lastLandmarkUpdate.current = now;
+        setLandmarks(result.hands.landmarks);
+      }
 
-      // Determine handedness if available
-      let leftHand = hand0;
-      let rightHand = hand1;
-      if (result.handednesses && result.handednesses.length > 0) {
-        const h0Label = result.handednesses[0]?.[0]?.categoryName;
-        if (h0Label === 'Right') {
-          // MediaPipe mirrors, so "Right" label = user's left hand in video
-          leftHand = hand0;
-          rightHand = hand1;
+      // Assemble holistic frame for classification
+      const frame = assembleFrame(result);
+      if (frame) {
+        // Always buffer the frame to maintain temporal continuity
+        if (!classifyingRef.current) {
+          classifyingRef.current = true;
+          bufferRef.current.pushFrame(frame).then((prediction) => {
+            classifyingRef.current = false;
+            setBufferProgress(Math.min(bufferRef.current.frameCount / SEQ_LEN, 1));
+
+            if (prediction && activeRef.current) {
+              setCurrentWord(prediction.word);
+              setConfidence(prediction.confidence);
+              setTopPredictions(prediction.topN);
+
+              const firstHand = result.hands!.landmarks[0];
+              if (firstHand) {
+                eventBus.emit('asl:recognized', {
+                  letter: prediction.word,
+                  confidence: prediction.confidence,
+                  landmarks: firstHand.map((l) => ({ x: l.x, y: l.y, z: l.z })),
+                  timestamp: Date.now(),
+                });
+              }
+            }
+          }).catch((err) => {
+            classifyingRef.current = false;
+          });
         } else {
-          leftHand = hand1;
-          rightHand = hand0;
+          // Push frame even while classifying — don't drop frames
+          bufferRef.current.pushFrameOnly(frame);
+          setBufferProgress(Math.min(bufferRef.current.frameCount / SEQ_LEN, 1));
         }
       }
-
-      // Feed frame to buffer for word-level classification
-      const prediction = bufferRef.current.pushFrame(leftHand, rightHand);
-
-      // Update buffer progress for UI
-      setBufferProgress(Math.min(bufferRef.current.frameCount / SEQ_LEN, 1));
-
-      if (prediction) {
-        setCurrentWord(prediction.word);
-        setConfidence(prediction.confidence);
-        setTopPredictions(prediction.topN);
-
-        // Emit to event bus for other modules
-        const firstHand = result.landmarks[0];
-        eventBus.emit('asl:recognized', {
-          letter: prediction.word, // "letter" field carries the word
-          confidence: prediction.confidence,
-          landmarks: firstHand.map((l) => ({ x: l.x, y: l.y, z: l.z })),
-          timestamp: Date.now(),
-        });
-      }
     } else {
-      setLandmarks(null);
+      if (landmarksRef.current !== null) {
+        landmarksRef.current = null;
+        setLandmarks(null);
+      }
       bufferRef.current.onHandsLost();
     }
 
@@ -106,21 +117,21 @@ export function useASLPipeline(
     setError(null);
 
     try {
-      await Promise.all([initHandLandmarker(), loadModel()]);
+      await Promise.all([initAllLandmarkers(), loadModel()]);
       activeRef.current = true;
       setIsRunning(true);
       setIsLoading(false);
       rafId.current = requestAnimationFrame(processFrame);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to start ASL pipeline';
-      // If the TFJS model isn't available yet, still run hand tracking only
-      if (message.includes('model') || message.includes('404') || message.includes('fetch')) {
+      console.error('[ASL Pipeline] start error:', err);
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('404') || message.includes('Could not fetch')) {
         try {
-          await initHandLandmarker();
+          await initAllLandmarkers();
           activeRef.current = true;
           setIsRunning(true);
           setIsLoading(false);
-          setError('ASL model not loaded — showing hand tracking only. Train and export the model first.');
+          setError('ASL model not loaded — showing hand tracking only. Export the DeBERTa model first.');
           rafId.current = requestAnimationFrame(processFrame);
           return;
         } catch {
@@ -142,24 +153,24 @@ export function useASLPipeline(
     setTopPredictions([]);
     setBufferProgress(0);
     bufferRef.current.clear();
+    resetAssemblerCache();
   }, []);
 
-  // Auto-start/stop based on config.enabled
   useEffect(() => {
-    if (config.enabled && videoRef.current) {
+    if (config.enabled) {
       start();
     } else {
       stop();
     }
-  }, [config.enabled, start, stop, videoRef]);
+  }, [config.enabled, start, stop]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       activeRef.current = false;
       cancelAnimationFrame(rafId.current);
-      destroyHandLandmarker();
+      destroyAllLandmarkers();
       disposeModel();
+      resetAssemblerCache();
     };
   }, []);
 

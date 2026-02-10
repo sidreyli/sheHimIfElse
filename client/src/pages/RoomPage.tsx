@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AppShell from '../components/Layout/AppShell';
 import { VideoGrid, MediaControls, useRoom } from '../features/video';
-import { ASLCaptionBar } from '../features/asl';
-import { STTIndicator } from '../features/speech';
+import { ASLCaptionBar, ASLOverlay, ASLSettingsPanel, useASLPipeline } from '../features/asl';
+import { STTIndicator, SpeechModeSelector, TTSControls } from '../features/speech';
+import { useSpeechPipeline } from '../features/speech/hooks/useSpeechPipeline';
 import { ChatPanel, UnifiedTranscript } from '../features/chat';
 import { announceToScreenReader } from '../utils/accessibility';
 import { formatRoomCode, toSpokenRoomCode } from '../utils/roomCode';
+import type { ASLConfig } from '../types/asl';
 
-type SidebarTab = 'chat' | 'transcript';
+type SidebarTab = 'chat' | 'transcript' | 'settings';
 
 export default function RoomPage() {
   const [activeTab, setActiveTab] = useState<SidebarTab>('chat');
@@ -32,6 +34,24 @@ export default function RoomPage() {
     leaveRoom,
   } = useRoom();
 
+  // ASL pipeline — runs on local video
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [aslConfig, setAslConfig] = useState<ASLConfig>({
+    enabled: true,
+    confidenceThreshold: 0.6,
+    smoothingWindow: 8,
+  });
+  const asl = useASLPipeline(localVideoRef, aslConfig);
+
+  // Speech pipeline
+  const speech = useSpeechPipeline();
+
+  // Attach localVideoRef to the first video element when localStream is available
+  // We use a callback ref pattern in VideoGrid's local tile
+  const handleLocalVideoRef = useCallback((el: HTMLVideoElement | null) => {
+    localVideoRef.current = el;
+  }, []);
+
   async function handleCopyRoomCode() {
     try {
       await navigator.clipboard.writeText(displayRoomCode);
@@ -44,7 +64,7 @@ export default function RoomPage() {
   return (
     <AppShell>
       <section className="flex flex-1 flex-col" aria-label="Video call area">
-        <div className="flex flex-1 items-center justify-center">
+        <div className="relative flex flex-1 items-center justify-center">
           <VideoGrid
             localPeerId={localPeerId}
             localDisplayName={displayName}
@@ -53,8 +73,18 @@ export default function RoomPage() {
             remoteDisplayNames={remoteDisplayNames}
             isConnected={isConnected}
             error={error}
+            onLocalVideoRef={handleLocalVideoRef}
+            localOverlay={
+              <ASLOverlay
+                landmarks={asl.landmarks}
+                width={localVideoRef.current?.videoWidth || 640}
+                height={localVideoRef.current?.videoHeight || 480}
+              />
+            }
           />
         </div>
+
+        {/* ASL status bar */}
         <ASLCaptionBar />
 
         <nav className="flex items-center justify-center gap-4 border-t border-surface-700 bg-surface-800 px-4 py-3">
@@ -65,7 +95,15 @@ export default function RoomPage() {
             onToggleCamera={toggleCamera}
             onLeave={leaveRoom}
           />
-          <STTIndicator />
+          <STTIndicator isListening={speech.stt.isListening} />
+          {asl.isLoading && (
+            <span className="text-xs text-accent-asl animate-pulse">Loading ASL model...</span>
+          )}
+          {asl.error && (
+            <span className="max-w-[200px] truncate text-xs text-amber-300" title={asl.error}>
+              {asl.error}
+            </span>
+          )}
           <div className="flex items-center gap-2">
             <span
               className="rounded-lg bg-surface-700 px-4 py-2 font-mono text-sm tracking-[0.2em] text-gray-300"
@@ -115,6 +153,20 @@ export default function RoomPage() {
           >
             Transcript
           </button>
+          <button
+            role="tab"
+            id="tab-settings"
+            aria-selected={activeTab === 'settings'}
+            aria-controls="panel-settings"
+            onClick={() => setActiveTab('settings')}
+            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'settings'
+                ? 'border-b-2 border-accent-asl text-accent-asl'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            Settings
+          </button>
         </div>
 
         <div
@@ -133,6 +185,17 @@ export default function RoomPage() {
           className={`flex flex-1 flex-col overflow-hidden ${activeTab !== 'transcript' ? 'hidden' : ''}`}
         >
           <UnifiedTranscript />
+        </div>
+
+        <div
+          id="panel-settings"
+          role="tabpanel"
+          aria-labelledby="tab-settings"
+          className={`flex flex-1 flex-col gap-4 overflow-y-auto p-3 ${activeTab !== 'settings' ? 'hidden' : ''}`}
+        >
+          <ASLSettingsPanel config={aslConfig} onConfigChange={setAslConfig} />
+          <SpeechModeSelector mode={speech.mode} onChange={speech.setMode} />
+          <TTSControls tts={speech.tts} />
         </div>
       </aside>
     </AppShell>

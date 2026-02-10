@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import VideoTile from './VideoTile';
 
 interface VideoGridProps {
@@ -8,6 +9,9 @@ interface VideoGridProps {
   remoteDisplayNames: Map<string, string>;
   error: string | null;
   isConnected: boolean;
+  onLocalVideoRef?: (el: HTMLVideoElement | null) => void;
+  /** Overlay element to render inside the local video tile */
+  localOverlay?: ReactNode;
 }
 
 export default function VideoGrid({
@@ -18,6 +22,8 @@ export default function VideoGrid({
   remoteDisplayNames,
   error,
   isConnected,
+  onLocalVideoRef,
+  localOverlay,
 }: VideoGridProps) {
   return (
     <section className="flex h-full w-full flex-col gap-3 p-3" aria-label="Video grid">
@@ -38,6 +44,8 @@ export default function VideoGrid({
             stream={localStream}
             displayName={`${localDisplayName} (You)`}
             muted
+            onVideoRef={onLocalVideoRef}
+            overlay={localOverlay}
           />
         ) : (
           <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-surface-700 bg-surface-800 text-sm text-gray-400">

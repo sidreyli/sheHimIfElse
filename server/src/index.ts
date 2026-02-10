@@ -20,7 +20,7 @@ app.use('/api/health', healthRouter);
 app.use('/api/rooms', roomsRouter);
 
 // PeerJS signaling server
-app.use('/peerjs', setupPeerServer(server));
+app.use(setupPeerServer(server));
 
 server.listen(config.port, () => {
   console.log(`SignConnect server running on http://localhost:${config.port}`);

@@ -5,6 +5,8 @@ const resultHandlers = new Set<ResultHandler>();
 const errorHandlers = new Set<ErrorHandler>();
 
 let recognition: SpeechRecognition | null = null;
+/** Whether the user has actively requested listening — used to auto-restart. */
+let shouldBeListening = false;
 
 function getSpeechRecognitionCtor():
   | (new () => SpeechRecognition)
@@ -44,6 +46,22 @@ function getRecognition(): SpeechRecognition | null {
     errorHandlers.forEach((handler) => handler(event));
   };
 
+  // Chrome/Edge periodically stop continuous recognition (server timeouts,
+  // silence, network blips). Auto-restart when the user still wants to listen.
+  recognition.onend = () => {
+    if (shouldBeListening && recognition) {
+      try {
+        recognition.start();
+      } catch {
+        // If restart fails, emit error and give up
+        shouldBeListening = false;
+        errorHandlers.forEach((handler) =>
+          handler(new Error('Speech recognition stopped unexpectedly.'))
+        );
+      }
+    }
+  };
+
   return recognition;
 }
 
@@ -57,9 +75,11 @@ export function startListening() {
   }
 
   try {
+    shouldBeListening = true;
     instance.start();
     return true;
   } catch (error) {
+    shouldBeListening = false;
     errorHandlers.forEach((handler) =>
       handler(error instanceof Error ? error : new Error('Speech recognition error'))
     );
@@ -68,6 +88,7 @@ export function startListening() {
 }
 
 export function stopListening() {
+  shouldBeListening = false;
   const instance = getRecognition();
   if (!instance) {
     return;

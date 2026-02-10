@@ -154,7 +154,7 @@ export function usePeerConnection({
       if (remotePeerId === localPeerId || callsRef.current.has(remotePeerId)) {
         return;
       }
-      const call = peer.call(remotePeerId, localStream, {
+      const call = peer.call(remotePeerId, localStream!, {
         metadata: { displayName },
       });
       if (call) {
@@ -172,10 +172,10 @@ export function usePeerConnection({
     function discoverPeers() {
       const activePeer = getPeer();
       if (!activePeer) return;
-      activePeer.listAllPeers((peerIds) => {
+      activePeer.listAllPeers((peerIds: string[]) => {
         peerIds
-          .filter((peerId) => peerId.startsWith(roomPrefix) && peerId !== localPeerId)
-          .forEach((peerId) => dialPeer(peerId));
+          .filter((peerId: string) => peerId.startsWith(roomPrefix) && peerId !== localPeerId)
+          .forEach((peerId: string) => dialPeer(peerId));
       });
     }
 
@@ -186,16 +186,16 @@ export function usePeerConnection({
       pollId = setInterval(discoverPeers, 3000);
     });
 
-    peer.on('call', (incomingCall) => {
+    peer.on('call', (incomingCall: MediaConnection) => {
       incomingCall.answer(localStream);
       attachCall(incomingCall);
     });
 
-    peer.on('connection', (conn) => {
+    peer.on('connection', (conn: DataConnection) => {
       attachDataConnection(conn);
     });
 
-    peer.on('error', (error) => {
+    peer.on('error', (error: Error) => {
       console.error('PeerJS error:', error);
     });
 

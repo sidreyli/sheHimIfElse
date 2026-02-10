@@ -35,10 +35,11 @@ export function useTextToSpeech() {
       };
     }
 
-    speechSynthesis.onvoiceschanged = updateVoices;
+    const synth = speechSynthesis as SpeechSynthesis & { onvoiceschanged: (() => void) | null };
+    synth.onvoiceschanged = updateVoices;
     return () => {
-      if (speechSynthesis.onvoiceschanged === updateVoices) {
-        speechSynthesis.onvoiceschanged = null;
+      if (synth.onvoiceschanged === updateVoices) {
+        synth.onvoiceschanged = null;
       }
     };
   }, []);

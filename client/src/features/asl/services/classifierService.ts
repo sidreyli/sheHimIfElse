@@ -1,73 +1,65 @@
-import * as tf from '@tensorflow/tfjs';
-import { ASL_LABELS, SEQ_LEN, NUM_FEATURES } from '../models/labelMap';
+import * as ort from 'onnxruntime-web';
+import { ASL_LABELS, SEQ_LEN, NUM_LANDMARKS } from '../models/labelMap';
 
-let model: tf.LayersModel | null = null;
-let isLoading = false;
+let session: ort.InferenceSession | null = null;
+let loadPromise: Promise<ort.InferenceSession> | null = null;
 
-export async function loadModel(): Promise<tf.LayersModel> {
-  if (model) return model;
-  if (isLoading) {
-    while (isLoading) {
-      await new Promise((r) => setTimeout(r, 100));
+ort.env.wasm.numThreads = 1;
+ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.1/dist/';
+
+export async function loadModel(): Promise<ort.InferenceSession> {
+  if (session) return session;
+  if (loadPromise) return loadPromise;
+
+  loadPromise = (async () => {
+    try {
+      const s = await ort.InferenceSession.create('/models/asl_deberta.onnx', {
+        executionProviders: ['wasm'],
+      });
+      session = s;
+      return s;
+    } catch (err) {
+      console.error('[ASL Classifier] Model load failed:', err);
+      loadPromise = null;
+      throw err;
     }
-    return model!;
-  }
+  })();
 
-  isLoading = true;
-  try {
-    model = await tf.loadLayersModel('/models/asl_model.json');
-    return model;
-  } finally {
-    isLoading = false;
-  }
+  return loadPromise;
+}
+
+function softmax(logits: Float32Array): Float32Array {
+  const maxVal = Math.max(...logits);
+  const exps = logits.map((v) => Math.exp(v - maxVal));
+  const sumExps = exps.reduce((a, b) => a + b, 0);
+  return new Float32Array(exps.map((e) => e / sumExps));
 }
 
 /**
- * Classify a sequence of hand landmark frames into an ASL word.
- *
- * Input: array of frames, each frame is 126 features
- *   (21 left-hand landmarks × 3 + 21 right-hand landmarks × 3)
- *
- * The sequence is padded/truncated to SEQ_LEN (32) frames internally.
+ * Classify a pre-built tensor of shape [SEQ_LEN, 5, 100] (already normalized).
+ * Input is a flat Float32Array of length SEQ_LEN * 5 * NUM_LANDMARKS.
  */
-export function classifySequence(
-  frames: number[][]
-): { word: string; confidence: number; topN: { word: string; confidence: number }[] } | null {
-  if (!model) return null;
-  if (frames.length === 0) return null;
-
-  // Pad or truncate to SEQ_LEN
-  let sequence: number[][];
-  if (frames.length >= SEQ_LEN) {
-    // Uniformly sample SEQ_LEN frames
-    const indices: number[] = [];
-    for (let i = 0; i < SEQ_LEN; i++) {
-      indices.push(Math.round((i * (frames.length - 1)) / (SEQ_LEN - 1)));
-    }
-    sequence = indices.map((idx) => frames[idx]);
-  } else {
-    // Pad with zeros
-    sequence = [
-      ...frames,
-      ...Array.from({ length: SEQ_LEN - frames.length }, () =>
-        new Array(NUM_FEATURES).fill(0)
-      ),
-    ];
-  }
-
-  // Verify dimensions
-  if (sequence.length !== SEQ_LEN || sequence[0].length !== NUM_FEATURES) {
+export async function classifySequence(
+  tensor: Float32Array
+): Promise<{ word: string; confidence: number; topN: { word: string; confidence: number }[] } | null> {
+  if (!session) {
     return null;
   }
 
-  const input = tf.tensor3d([sequence], [1, SEQ_LEN, NUM_FEATURES]);
-  const prediction = model.predict(input) as tf.Tensor;
-  const scores = prediction.dataSync() as Float32Array;
+  const expectedLen = SEQ_LEN * 5 * NUM_LANDMARKS;
+  if (tensor.length !== expectedLen) {
+    return null;
+  }
 
-  input.dispose();
-  prediction.dispose();
+  const inputName = session.inputNames[0];
+  const inputTensor = new ort.Tensor('float32', tensor, [SEQ_LEN, 5, NUM_LANDMARKS]);
+  const results = await session.run({ [inputName]: inputTensor });
 
-  // Find top-5 predictions
+  const outputName = session.outputNames[0];
+  const outputData = results[outputName].data as Float32Array;
+
+  const scores = softmax(outputData);
+
   const indexed = Array.from(scores).map((score, i) => ({ i, score }));
   indexed.sort((a, b) => b.score - a.score);
 
@@ -77,6 +69,7 @@ export function classifySequence(
   }));
 
   const best = indexed[0];
+  console.log('[ASL] top-5:', topN.map(t => `${t.word}:${t.confidence.toFixed(3)}`).join(' '));
   return {
     word: ASL_LABELS[best.i] ?? 'unknown',
     confidence: best.score,
@@ -84,36 +77,11 @@ export function classifySequence(
   };
 }
 
-/** Legacy single-frame classify — kept for backward compatibility */
-export function classify(
-  landmarks: number[][]
-): { letter: string; confidence: number } | null {
-  // For single-frame, just wrap in a 1-frame sequence
-  const flat = landmarks.flatMap(([x, y, z]) => [x, y, z]);
-
-  // Single hand = 63 features, both hands = 126 features
-  let frame: number[];
-  if (flat.length === 63) {
-    // Only one hand — pad the other with zeros
-    frame = [...flat, ...new Array(63).fill(0)];
-  } else if (flat.length === 126) {
-    frame = flat;
-  } else {
-    return null;
-  }
-
-  const result = classifySequence([frame]);
-  if (!result) return null;
-  return { letter: result.word, confidence: result.confidence };
-}
-
 export function isModelLoaded(): boolean {
-  return model !== null;
+  return session !== null;
 }
 
 export function disposeModel() {
-  if (model) {
-    model.dispose();
-    model = null;
-  }
+  if (session) session = null;
+  loadPromise = null;
 }

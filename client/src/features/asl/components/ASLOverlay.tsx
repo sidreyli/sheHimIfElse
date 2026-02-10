@@ -13,8 +13,41 @@ const HAND_CONNECTIONS: [number, number][] = [
 
 interface ASLOverlayProps {
   landmarks: NormalizedLandmark[][] | null;
+  /** Native video width (for aspect ratio calculation) */
   width: number;
+  /** Native video height (for aspect ratio calculation) */
   height: number;
+}
+
+/**
+ * Compute the visible region of an object-cover video within its container.
+ * Returns the offset and scale to map normalised landmark coords into the
+ * container's coordinate space.
+ */
+function computeObjectCoverTransform(
+  videoW: number,
+  videoH: number,
+  containerW: number,
+  containerH: number,
+) {
+  const videoAspect = videoW / videoH;
+  const containerAspect = containerW / containerH;
+
+  let scale: number;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (videoAspect > containerAspect) {
+    // Video is wider → height fills, sides cropped
+    scale = containerH / videoH;
+    offsetX = (containerW - videoW * scale) / 2;
+  } else {
+    // Video is taller → width fills, top/bottom cropped
+    scale = containerW / videoW;
+    offsetY = (containerH - videoH * scale) / 2;
+  }
+
+  return { offsetX, offsetY, scaledW: videoW * scale, scaledH: videoH * scale };
 }
 
 export default function ASLOverlay({ landmarks, width, height }: ASLOverlayProps) {
@@ -26,11 +59,29 @@ export default function ASLOverlay({ landmarks, width, height }: ASLOverlayProps
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = width;
-    canvas.height = height;
-    ctx.clearRect(0, 0, width, height);
+    // Use the canvas element's actual display size so drawing matches on screen
+    const rect = canvas.getBoundingClientRect();
+    const dw = rect.width;
+    const dh = rect.height;
 
-    if (!landmarks) return;
+    // Set canvas resolution to match display size (1:1 CSS pixels)
+    canvas.width = dw;
+    canvas.height = dh;
+    ctx.clearRect(0, 0, dw, dh);
+
+    if (!landmarks || width === 0 || height === 0) return;
+
+    // Map normalised [0-1] MediaPipe coords into the object-cover visible area
+    const { offsetX, offsetY, scaledW, scaledH } = computeObjectCoverTransform(
+      width,
+      height,
+      dw,
+      dh,
+    );
+
+    /** Convert a normalised landmark coordinate to canvas pixel */
+    const toX = (nx: number) => offsetX + nx * scaledW;
+    const toY = (ny: number) => offsetY + ny * scaledH;
 
     for (const hand of landmarks) {
       // Draw connections
@@ -41,8 +92,8 @@ export default function ASLOverlay({ landmarks, width, height }: ASLOverlayProps
         const b = hand[end];
         if (!a || !b) continue;
         ctx.beginPath();
-        ctx.moveTo(a.x * width, a.y * height);
-        ctx.lineTo(b.x * width, b.y * height);
+        ctx.moveTo(toX(a.x), toY(a.y));
+        ctx.lineTo(toX(b.x), toY(b.y));
         ctx.stroke();
       }
 
@@ -50,10 +101,9 @@ export default function ASLOverlay({ landmarks, width, height }: ASLOverlayProps
       for (const point of hand) {
         ctx.fillStyle = '#a78bfa';
         ctx.beginPath();
-        ctx.arc(point.x * width, point.y * height, 4, 0, 2 * Math.PI);
+        ctx.arc(toX(point.x), toY(point.y), 4, 0, 2 * Math.PI);
         ctx.fill();
 
-        // White outline for visibility
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1;
         ctx.stroke();
@@ -65,8 +115,7 @@ export default function ASLOverlay({ landmarks, width, height }: ASLOverlayProps
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0"
-      style={{ width, height }}
+      className="pointer-events-none absolute inset-0 h-full w-full"
     />
   );
 }

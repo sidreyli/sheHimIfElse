@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { eventBus } from '../../../utils/eventBus';
 import { speak as speakService } from './ttsService';
 
@@ -37,3 +38,6 @@ export function initSpeechBridge() {
 export function setTTSEnabled(enabled: boolean) {
   ttsEnabled = enabled;
 }
+=======
+// TODO: Dev 3 — Cross-module bridge: listens to asl:recognized -> speaks via TTS
+>>>>>>> clarence

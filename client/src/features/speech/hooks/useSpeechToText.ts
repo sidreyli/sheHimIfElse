@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { eventBus } from '../../../utils/eventBus';
 import { onError, onResult, startListening, stopListening } from '../services/sttService';
@@ -95,4 +96,9 @@ export function useSpeechToText() {
     () => ({ isListening, transcript, interimText, error, start, stop }),
     [isListening, transcript, interimText, error, start, stop]
   );
+=======
+// TODO: Dev 3 — Web Speech API SpeechRecognition wrapper
+export function useSpeechToText() {
+  // Stub
+>>>>>>> clarence
 }

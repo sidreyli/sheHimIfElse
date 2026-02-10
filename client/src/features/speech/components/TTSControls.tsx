@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useId } from 'react';
 import type { TTSConfig } from '../../../types/speech';
 import { useTextToSpeech } from '../hooks/useTextToSpeech';
@@ -111,4 +112,9 @@ export default function TTSControls({ tts }: TTSControlsProps) {
       </div>
     </div>
   );
+=======
+// TODO: Dev 3 — TTS voice selection, rate, volume controls
+export default function TTSControls() {
+  return <div>TTS controls placeholder</div>;
+>>>>>>> clarence
 }

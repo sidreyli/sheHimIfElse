@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState, useEffect, useCallback } from 'react';
 import type { ChatMessage } from '../../../types';
 import type { FeedItem } from '../components/MessageList';
@@ -83,4 +84,9 @@ export function useTranscriptMerge() {
   }, [addMessage, addSystemMessage]);
 
   return { items };
+=======
+// TODO: Dev 4 — Merges chat, ASL, and STT events into a unified chronological feed
+export function useTranscriptMerge() {
+  // Stub
+>>>>>>> clarence
 }

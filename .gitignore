@@ -8,4 +8,7 @@ ml/models/saved_model/
 *.pyc
 __pycache__/
 .venv/
+<<<<<<< HEAD
 client/.vite/
+=======
+>>>>>>> clarence

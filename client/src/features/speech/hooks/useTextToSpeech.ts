@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TTSConfig } from '../../../types/speech';
 import { getVoices, speak as speakService, stop as stopService } from '../services/ttsService';
@@ -71,4 +72,9 @@ export function useTextToSpeech() {
     () => ({ isSpeaking, voices, speak, stop, config, setConfig }),
     [isSpeaking, voices, speak, stop, config]
   );
+=======
+// TODO: Dev 3 — SpeechSynthesis wrapper
+export function useTextToSpeech() {
+  // Stub
+>>>>>>> clarence
 }

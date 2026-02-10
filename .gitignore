@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.local
+.DS_Store
+ml/data/raw/
+ml/models/saved_model/
+*.pyc
+__pycache__/
+.venv/

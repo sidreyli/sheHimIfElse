@@ -4,6 +4,8 @@ dist/
 *.local
 .DS_Store
 ml/data/raw/
+ml/data/asl-signs/
+ml/data/processed/*.npy
 ml/models/saved_model/
 *.pyc
 __pycache__/

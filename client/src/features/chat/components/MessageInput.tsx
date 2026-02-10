@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState, type KeyboardEvent } from 'react';
 import { Send } from 'lucide-react';
 
@@ -47,9 +46,4 @@ export default function MessageInput({ onSend, disabled = false }: MessageInputP
       </button>
     </div>
   );
-=======
-// TODO: Dev 4 — Text input + send button for chat messages
-export default function MessageInput() {
-  return <div>MessageInput placeholder</div>;
->>>>>>> clarence
 }

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useEffect, useRef, useState } from 'react';
 import { eventBus } from '../../../utils/eventBus';
 import type { TranscriptEntry } from '../../../types/speech';
@@ -57,9 +56,4 @@ export default function TranscriptPanel() {
       </div>
     </div>
   );
-=======
-// TODO: Dev 3 — Scrollable panel showing STT transcript entries
-export default function TranscriptPanel() {
-  return <div aria-live="polite">Transcript placeholder</div>;
->>>>>>> clarence
 }

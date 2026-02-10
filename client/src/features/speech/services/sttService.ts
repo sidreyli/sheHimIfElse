@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 type ResultHandler = (event: SpeechRecognitionEvent) => void;
 type ErrorHandler = (event: SpeechRecognitionErrorEvent | Error) => void;
 
@@ -90,6 +89,3 @@ export function onError(callback: ErrorHandler) {
   errorHandlers.add(callback);
   return () => errorHandlers.delete(callback);
 }
-=======
-// TODO: Dev 3 — Low-level Speech Recognition API management
->>>>>>> clarence

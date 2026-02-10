@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import type { ChatMessage } from '../../../types';
 import { SOURCE_COLORS, SOURCE_BG_COLORS, SOURCE_LABELS } from '../../../utils/constants';
 
@@ -34,9 +33,4 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
       <p className="text-sm text-gray-100 break-words">{message.content}</p>
     </div>
   );
-=======
-// TODO: Dev 4 — Single message bubble, color-coded by source
-export default function MessageBubble() {
-  return <div>MessageBubble placeholder</div>;
->>>>>>> clarence
 }

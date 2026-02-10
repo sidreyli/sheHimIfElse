@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useEffect, useRef } from 'react';
 import type { ChatMessage } from '../../../types';
 import MessageBubble from './MessageBubble';
@@ -49,9 +48,4 @@ export default function MessageList({ items }: MessageListProps) {
       <div ref={bottomRef} />
     </div>
   );
-=======
-// TODO: Dev 4 — Scrollable message list with auto-scroll
-export default function MessageList() {
-  return <div role="log" aria-live="polite">MessageList placeholder</div>;
->>>>>>> clarence
 }

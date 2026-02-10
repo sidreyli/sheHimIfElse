@@ -1,21 +1,49 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppShell from '../components/Layout/AppShell';
 import Button from '../components/common/Button';
+import { announceToScreenReader } from '../utils/accessibility';
+import {
+  formatRoomCode,
+  generateRoomCode,
+  isValidRoomCode,
+  normalizeRoomCode,
+  toSpokenRoomCode,
+} from '../utils/roomCode';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const [roomId, setRoomId] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [roomCodeError, setRoomCodeError] = useState('');
+
+  const formattedRoomId = useMemo(() => formatRoomCode(roomId), [roomId]);
+  const canJoin = isValidRoomCode(formattedRoomId);
 
   function handleCreate() {
-    const id = crypto.randomUUID().slice(0, 8);
-    navigate(`/room/${id}?name=${encodeURIComponent(displayName || 'User')}`);
+    const code = generateRoomCode();
+    announceToScreenReader(`Room code created: ${toSpokenRoomCode(code)}.`);
+    navigate(`/room/${code}?name=${encodeURIComponent(displayName || 'User')}`);
   }
 
   function handleJoin() {
-    if (!roomId.trim()) return;
-    navigate(`/room/${roomId.trim()}?name=${encodeURIComponent(displayName || 'User')}`);
+    if (!canJoin) {
+      const message = 'Enter an 8-character room code. Hyphen is optional.';
+      setRoomCodeError(message);
+      announceToScreenReader(message, 'assertive');
+      return;
+    }
+
+    setRoomCodeError('');
+    navigate(`/room/${formattedRoomId}?name=${encodeURIComponent(displayName || 'User')}`);
+  }
+
+  function handleRoomCodeChange(value: string) {
+    const formatted = formatRoomCode(normalizeRoomCode(value));
+    setRoomId(formatted);
+    if (roomCodeError) {
+      setRoomCodeError('');
+    }
   }
 
   return (
@@ -57,14 +85,32 @@ export default function HomePage() {
               <span className="text-sm font-medium">Room Code</span>
               <input
                 type="text"
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value)}
-                placeholder="Enter room code"
-                className="mt-1 block w-full rounded-lg border border-surface-600 bg-surface-700 px-4 py-3 text-white placeholder:text-gray-500 focus:border-accent-primary focus:outline-none"
+                value={formattedRoomId}
+                onChange={(e) => handleRoomCodeChange(e.target.value)}
+                placeholder="ABCD-EFGH"
+                inputMode="text"
+                autoCapitalize="characters"
+                autoComplete="off"
+                spellCheck={false}
+                aria-label="Room code"
+                aria-describedby="room-code-help room-code-sr-help"
+                aria-invalid={roomCodeError ? 'true' : 'false'}
+                className="mt-1 block w-full rounded-lg border border-surface-600 bg-surface-700 px-4 py-3 font-mono tracking-[0.2em] uppercase text-white placeholder:text-gray-500 focus:border-accent-primary focus:outline-none"
               />
+              <p id="room-code-help" className="mt-2 text-xs text-gray-400">
+                8 characters; you can type with or without hyphen.
+              </p>
+              <p id="room-code-sr-help" className="sr-only">
+                Room code format is four characters, dash, four characters.
+              </p>
+              {roomCodeError && (
+                <p role="alert" className="mt-2 text-xs text-red-300">
+                  {roomCodeError}
+                </p>
+              )}
             </label>
 
-            <Button onClick={handleJoin} variant="secondary" className="w-full" disabled={!roomId.trim()}>
+            <Button onClick={handleJoin} variant="secondary" className="w-full" disabled={!canJoin}>
               Join Room
             </Button>
           </div>

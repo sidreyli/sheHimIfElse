@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { initSpeechBridge, setTTSEnabled } from '../services/speechBridge';
 import { useSpeechToText } from './useSpeechToText';
@@ -53,9 +52,4 @@ export function useSpeechPipeline() {
     () => ({ mode, setMode: setSpeechMode, stt, tts }),
     [mode, setSpeechMode, stt, tts]
   );
-=======
-// TODO: Dev 3 — Orchestrates STT + TTS + event bus integration
-export function useSpeechPipeline() {
-  // Stub
->>>>>>> clarence
 }

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState } from 'react';
 import type { ChatMessage } from '../../../types';
 import MessageList, { type FeedItem } from './MessageList';
@@ -76,9 +75,4 @@ export default function ChatPanel({ messages, onSend }: ChatPanelProps) {
       <MessageInput onSend={handleSend} />
     </div>
   );
-=======
-// TODO: Dev 4 — Container for MessageList + MessageInput
-export default function ChatPanel() {
-  return <div>ChatPanel placeholder</div>;
->>>>>>> clarence
 }

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useId, useState } from 'react';
 import type { SpeechMode } from '../hooks/useSpeechPipeline';
 
@@ -66,9 +65,4 @@ export default function SpeechModeSelector({ mode, onChange }: SpeechModeSelecto
       </div>
     </fieldset>
   );
-=======
-// TODO: Dev 3 — Toggle between STT-only, TTS-only, both, or off
-export default function SpeechModeSelector() {
-  return <div>Speech mode selector placeholder</div>;
->>>>>>> clarence
 }

@@ -19,6 +19,7 @@ export default function AccessibilityToolbar() {
         {FONT_SIZES.map((fs) => (
           <button
             key={fs.value}
+            type="button"
             onClick={() => setFontSize(fs.value)}
             aria-pressed={fontSize === fs.value}
             className={`min-w-[36px] rounded px-2 py-1 transition-colors ${
@@ -34,6 +35,7 @@ export default function AccessibilityToolbar() {
 
       {/* High contrast toggle */}
       <button
+        type="button"
         onClick={() => setHighContrast(!highContrast)}
         aria-pressed={highContrast}
         className={`rounded px-3 py-1 transition-colors ${
@@ -45,6 +47,7 @@ export default function AccessibilityToolbar() {
 
       {/* Reduced motion toggle */}
       <button
+        type="button"
         onClick={() => setReducedMotion(!reducedMotion)}
         aria-pressed={reducedMotion}
         className={`rounded px-3 py-1 transition-colors ${

@@ -6,3 +6,4 @@ export { default as VideoTile } from './components/VideoTile';
 export { default as LocalPreview } from './components/LocalPreview';
 export { default as MediaControls } from './components/MediaControls';
 export { default as RoomLobby } from './components/RoomLobby';
+export { useRoom } from './hooks/useRoom';

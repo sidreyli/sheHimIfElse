@@ -3,7 +3,7 @@ import type { Server } from 'http';
 
 export function setupPeerServer(server: Server) {
   const peerServer = ExpressPeerServer(server, {
-    path: '/peerjs',
+    path: '/',
     allow_discovery: true,
   });
 

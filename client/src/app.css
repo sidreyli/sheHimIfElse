@@ -15,6 +15,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html.sc-font-normal {
+  font-size: 16px;
+}
+
+html.sc-font-large {
+  font-size: 18px;
+}
+
+html.sc-font-extra-large {
+  font-size: 20px;
+}
+
 /* Focus ring for keyboard navigation */
 :focus-visible {
   outline: 2px solid theme('colors.accent.primary');
@@ -30,6 +42,26 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Reduced motion toggle from accessibility toolbar */
+body.sc-reduced-motion *,
+body.sc-reduced-motion *::before,
+body.sc-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* High-contrast toggle from accessibility toolbar */
+body.sc-high-contrast {
+  filter: contrast(1.3) saturate(1.2);
+}
+
+body.sc-high-contrast :focus-visible {
+  outline-color: #ffeb3b;
+  outline-width: 3px;
 }
 
 /* Source color coding utility classes */

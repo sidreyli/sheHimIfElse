@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 type STTIndicatorProps = {
   isListening?: boolean;
 };
@@ -30,9 +29,4 @@ export default function STTIndicator({ isListening = false }: STTIndicatorProps)
       </span>
     </div>
   );
-=======
-// TODO: Dev 3 — Visual indicator showing STT is active/listening
-export default function STTIndicator() {
-  return <div>STT indicator placeholder</div>;
->>>>>>> clarence
 }

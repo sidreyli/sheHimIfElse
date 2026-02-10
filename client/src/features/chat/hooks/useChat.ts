@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState, useCallback } from 'react';
 import type { ChatMessage } from '../../../types';
 import { eventBus } from '../../../utils/eventBus';
@@ -30,14 +29,10 @@ export function useChat({ senderId, senderName }: UseChatOptions) {
       };
       addMessage(msg);
       eventBus.emit('chat:message', msg);
+      return msg;
     },
     [senderId, senderName, addMessage],
   );
 
   return { messages, sendMessage, addMessage };
-=======
-// TODO: Dev 4 — Chat state management + sending/receiving via PeerJS DataConnection
-export function useChat() {
-  // Stub
->>>>>>> clarence
 }

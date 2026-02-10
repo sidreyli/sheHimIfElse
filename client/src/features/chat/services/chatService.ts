@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import type { DataConnection } from 'peerjs';
 import type { ChatMessage } from '../../../types';
 
@@ -23,6 +22,3 @@ export function onMessage(
     }
   });
 }
-=======
-// TODO: Dev 4 — PeerJS DataConnection-based chat messaging
->>>>>>> clarence

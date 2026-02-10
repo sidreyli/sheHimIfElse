@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import type { ChatMessage } from '../../../types';
 import { SOURCE_LABELS } from '../../../utils/constants';
 
@@ -26,6 +25,3 @@ export function notifyMessage(message: ChatMessage) {
     tag: message.id,
   });
 }
-=======
-// TODO: Dev 4 — Browser notifications for new messages when tab is not focused
->>>>>>> clarence

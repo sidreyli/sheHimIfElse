@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import type { TTSConfig } from '../../../types/speech';
 
 export function getVoices() {
@@ -54,6 +53,3 @@ export function stop() {
 
   window.speechSynthesis.cancel();
 }
-=======
-// TODO: Dev 3 — Low-level SpeechSynthesis API management
->>>>>>> clarence

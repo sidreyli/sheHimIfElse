@@ -19,9 +19,15 @@ export default function VideoTile({ peerId, stream, displayName, muted = false, 
     const video = videoRef.current;
     if (!video) return;
 
+    console.log(`[VideoTile] Mounting for ${peerId.slice(-6)}, tracks:`, {
+      video: stream.getVideoTracks().map(t => ({ label: t.label, enabled: t.enabled, readyState: t.readyState })),
+      audio: stream.getAudioTracks().map(t => ({ label: t.label, enabled: t.enabled, readyState: t.readyState })),
+      active: stream.active,
+    });
+
     video.srcObject = stream;
-    void video.play().catch(() => {
-      // autoplay may be blocked; user interaction will start playback
+    void video.play().catch((err) => {
+      console.error(`[VideoTile] Play failed for ${peerId.slice(-6)}:`, err);
     });
 
     videoRefs.current?.set(peerId, video);

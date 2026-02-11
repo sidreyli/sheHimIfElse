@@ -53,6 +53,7 @@ export default function VideoGrid({
           </div>
         )}
 
+        {(() => { if (remoteStreams.size > 0) console.log(`[VideoGrid] Rendering ${remoteStreams.size} remote stream(s)`); return null; })()}
         {Array.from(remoteStreams.entries()).map(([peerId, stream]) => (
           <VideoTile
             key={peerId}

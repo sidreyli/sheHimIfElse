@@ -1,5 +1,6 @@
 import { eventBus } from '../../../utils/eventBus';
 import type { TTSConfig } from '../../../types/speech';
+import type { ChatMessage } from '../../../types/message';
 import { speak as speakService } from './ttsService';
 
 let initialized = false;
@@ -46,6 +47,18 @@ function handleTtsSpeak(payload: { text: string }) {
   }
 }
 
+function handleChatMessage(message: ChatMessage) {
+  if (!ttsEnabled) {
+    return;
+  }
+
+  // chat:message events on the eventBus are only emitted for remote messages
+  // (local sends go through ChatPanel.speakText directly)
+  if (message?.content) {
+    speakService(message.content, ttsConfig);
+  }
+}
+
 export function initSpeechBridge() {
   if (initialized) {
     return;
@@ -55,6 +68,7 @@ export function initSpeechBridge() {
   eventBus.on('asl:recognized', handleAslRecognized);
   eventBus.on('stt:result', handleSttResult);
   eventBus.on('tts:speak', handleTtsSpeak);
+  eventBus.on('chat:message', handleChatMessage);
 }
 
 export function setTTSEnabled(enabled: boolean) {

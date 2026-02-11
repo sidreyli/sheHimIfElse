@@ -183,13 +183,17 @@ export function usePeerConnection({
       const activePeer = getPeer();
       if (!activePeer) return;
       activePeer.listAllPeers((peerIds: string[]) => {
-        peerIds
-          .filter((peerId: string) => peerId.startsWith(roomPrefix) && peerId !== localPeerId)
-          .forEach((peerId: string) => dialPeer(peerId));
+        console.log('[SignConnect] All peers on server:', peerIds);
+        const roomPeers = peerIds.filter(
+          (peerId: string) => peerId.startsWith(roomPrefix) && peerId !== localPeerId
+        );
+        console.log('[SignConnect] Room peers to dial:', roomPeers);
+        roomPeers.forEach((peerId: string) => dialPeer(peerId));
       });
     }
 
-    peer.on('open', () => {
+    peer.on('open', (id) => {
+      console.log('[SignConnect] Connected to signaling server with ID:', id);
       setIsConnected(true);
       eventBus.emit('room:connected');
       discoverPeers();
@@ -197,16 +201,18 @@ export function usePeerConnection({
     });
 
     peer.on('call', (incomingCall: MediaConnection) => {
+      console.log('[SignConnect] Incoming call from:', incomingCall.peer);
       incomingCall.answer(localStream);
       attachCall(incomingCall);
     });
 
     peer.on('connection', (conn: DataConnection) => {
+      console.log('[SignConnect] Incoming data connection from:', conn.peer);
       attachDataConnection(conn);
     });
 
     peer.on('error', (error: Error) => {
-      console.error('PeerJS error:', error);
+      console.error('[SignConnect] PeerJS error:', error.type, error.message);
     });
 
     return () => {

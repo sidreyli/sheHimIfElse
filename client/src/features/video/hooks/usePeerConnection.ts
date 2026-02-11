@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { ChatMessage } from '../../../types';
 import type { ASLPrediction } from '../../../types/asl';
 import type { TranscriptEntry } from '../../../types/speech';
+import type Peer from 'peerjs';
 import type { MediaConnection } from 'peerjs';
 import type { DataConnection } from 'peerjs';
 import { useRoomContext } from '../../../contexts/RoomContext';
@@ -62,10 +63,10 @@ export function usePeerConnection({
   useEffect(() => {
     if (!roomId || !localStream) return;
 
-    const peer = createPeer(localPeerId);
     const roomPrefix = `${roomId}-`;
     let pollId: ReturnType<typeof setInterval> | null = null;
     let mounted = true;
+    let peer: Peer | null = null;
 
     function upsertPeerName(peerId: string, name: string) {
       const normalized = name.trim() || `Peer ${peerId.slice(-4)}`;
@@ -132,7 +133,21 @@ export function usePeerConnection({
 
       callsRef.current.set(remotePeerId, call);
 
+      // Log ICE connection state transitions for debugging
+      try {
+        const pc = call.peerConnection;
+        if (pc) {
+          pc.oniceconnectionstatechange = () => {
+            console.log(`[SignConnect] ICE state (${remotePeerId.slice(-6)}): ${pc.iceConnectionState}`);
+          };
+        }
+      } catch {
+        // peerConnection may not be available immediately
+      }
+
       call.on('stream', (remoteStream) => {
+        console.log(`[SignConnect] Received remote stream from ${remotePeerId.slice(-6)}`);
+
         setRemoteStreams((prev) => {
           const next = new Map(prev);
           next.set(remotePeerId, remoteStream);
@@ -161,7 +176,7 @@ export function usePeerConnection({
     }
 
     function dialPeer(remotePeerId: string) {
-      if (remotePeerId === localPeerId || callsRef.current.has(remotePeerId)) {
+      if (!peer || remotePeerId === localPeerId || callsRef.current.has(remotePeerId)) {
         return;
       }
       const call = peer.call(remotePeerId, localStream!, {
@@ -192,27 +207,32 @@ export function usePeerConnection({
       });
     }
 
-    peer.on('open', (id) => {
-      console.log('[SignConnect] Connected to signaling server with ID:', id);
-      setIsConnected(true);
-      eventBus.emit('room:connected');
-      discoverPeers();
-      pollId = setInterval(discoverPeers, 3000);
-    });
+    createPeer(localPeerId).then((p) => {
+      if (!mounted) { p.destroy(); return; }
+      peer = p;
 
-    peer.on('call', (incomingCall: MediaConnection) => {
-      console.log('[SignConnect] Incoming call from:', incomingCall.peer);
-      incomingCall.answer(localStream);
-      attachCall(incomingCall);
-    });
+      peer.on('open', (id) => {
+        console.log('[SignConnect] Connected to signaling server with ID:', id);
+        setIsConnected(true);
+        eventBus.emit('room:connected');
+        discoverPeers();
+        pollId = setInterval(discoverPeers, 3000);
+      });
 
-    peer.on('connection', (conn: DataConnection) => {
-      console.log('[SignConnect] Incoming data connection from:', conn.peer);
-      attachDataConnection(conn);
-    });
+      peer.on('call', (incomingCall: MediaConnection) => {
+        console.log('[SignConnect] Incoming call from:', incomingCall.peer);
+        incomingCall.answer(localStream);
+        attachCall(incomingCall);
+      });
 
-    peer.on('error', (error: Error) => {
-      console.error('[SignConnect] PeerJS error:', (error as Error & { type?: string }).type, error.message);
+      peer.on('connection', (conn: DataConnection) => {
+        console.log('[SignConnect] Incoming data connection from:', conn.peer);
+        attachDataConnection(conn);
+      });
+
+      peer.on('error', (error: Error) => {
+        console.error('[SignConnect] PeerJS error:', (error as Error & { type?: string }).type, error.message);
+      });
     });
 
     return () => {

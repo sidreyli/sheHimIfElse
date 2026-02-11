@@ -212,7 +212,7 @@ export function usePeerConnection({
     });
 
     peer.on('error', (error: Error) => {
-      console.error('[SignConnect] PeerJS error:', error.type, error.message);
+      console.error('[SignConnect] PeerJS error:', (error as Error & { type?: string }).type, error.message);
     });
 
     return () => {

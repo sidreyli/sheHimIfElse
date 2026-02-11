@@ -2,7 +2,11 @@ export const API_BASE = import.meta.env.VITE_API_URL || '';
 export const PEER_CLOUD = import.meta.env.VITE_PEER_CLOUD === 'true';
 
 const DEFAULT_PEER_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-export const PEER_HOST = import.meta.env.VITE_PEER_HOST || DEFAULT_PEER_HOST;
+/** Strip any protocol prefix (https://, http://) so PeerJS gets a bare hostname */
+function stripProtocol(h: string): string {
+  return h.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+}
+export const PEER_HOST = stripProtocol(import.meta.env.VITE_PEER_HOST || DEFAULT_PEER_HOST);
 export const PEER_PORT = Number(import.meta.env.VITE_PEER_PORT || 3001);
 export const PEER_PATH = '/peerjs';
 export const PEER_SECURE =

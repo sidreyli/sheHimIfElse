@@ -9,15 +9,16 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "peer": "^1.0.2",
+    "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "express-rate-limit": "^7.2.0",
-    "dotenv": "^16.4.5"
+    "peer": "^1.0.2"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
     "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
     "tsx": "^4.11.0",
     "typescript": "^5.4.5"
   }

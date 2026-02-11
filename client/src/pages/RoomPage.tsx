@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AppShell from '../components/Layout/AppShell';
 import { VideoGrid, MediaControls, useRoom } from '../features/video';
-import { ASLCaptionBar, ASLOverlay, ASLSettingsPanel, useASLPipeline } from '../features/asl';
+import { ASLCaptionBar, ASLOverlay, ASLSettingsPanel, useASLVisionPipeline } from '../features/asl';
 import { STTIndicator, SpeechModeSelector, TTSControls } from '../features/speech';
 import { useSpeechPipeline } from '../features/speech/hooks/useSpeechPipeline';
 import { ChatPanel, UnifiedTranscript } from '../features/chat';
@@ -41,7 +41,7 @@ export default function RoomPage() {
     confidenceThreshold: 0.6,
     smoothingWindow: 8,
   });
-  const asl = useASLPipeline(localVideoRef, aslConfig);
+  const asl = useASLVisionPipeline(localVideoRef, aslConfig);
 
   // Speech pipeline
   const speech = useSpeechPipeline();
@@ -97,7 +97,10 @@ export default function RoomPage() {
           />
           <STTIndicator isListening={speech.stt.isListening} />
           {asl.isLoading && (
-            <span className="text-xs text-accent-asl animate-pulse">Loading ASL model...</span>
+            <span className="text-xs text-accent-asl animate-pulse">Loading hand tracker...</span>
+          )}
+          {asl.isRecognizing && (
+            <span className="text-xs text-accent-asl animate-pulse">🔍 Recognizing...</span>
           )}
           {asl.error && (
             <span className="max-w-[200px] truncate text-xs text-amber-300" title={asl.error}>

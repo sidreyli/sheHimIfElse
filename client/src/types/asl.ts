@@ -10,6 +10,7 @@ export interface ASLPrediction {
   landmarks: HandLandmark[];
   timestamp: number;
   _remote?: boolean;
+  speakerName?: string;
 }
 
 export interface ASLConfig {

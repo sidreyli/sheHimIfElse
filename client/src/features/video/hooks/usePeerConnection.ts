@@ -133,12 +133,18 @@ export function usePeerConnection({
 
       callsRef.current.set(remotePeerId, call);
 
-      // Log ICE connection state transitions for debugging
+      // Monitor ICE state and clean up dead connections
       try {
         const pc = call.peerConnection;
         if (pc) {
           pc.oniceconnectionstatechange = () => {
-            console.log(`[SignConnect] ICE state (${remotePeerId.slice(-6)}): ${pc.iceConnectionState}`);
+            const state = pc.iceConnectionState;
+            console.log(`[SignConnect] ICE state (${remotePeerId.slice(-6)}): ${state}`);
+            if (state === 'failed' || state === 'closed') {
+              call.close();
+              callsRef.current.delete(remotePeerId);
+              removePeer(remotePeerId);
+            }
           };
         }
       } catch {

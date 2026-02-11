@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import VideoTile from './VideoTile';
 
 interface VideoGridProps {
@@ -14,6 +14,14 @@ interface VideoGridProps {
   localOverlay?: ReactNode;
 }
 
+/** Pick grid columns based on total tile count (local + remote). */
+function gridColsClass(count: number): string {
+  if (count <= 1) return 'grid-cols-1';
+  if (count <= 4) return 'grid-cols-1 md:grid-cols-2';
+  if (count <= 9) return 'grid-cols-2 md:grid-cols-3';
+  return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4';
+}
+
 export default function VideoGrid({
   localPeerId,
   localDisplayName,
@@ -25,6 +33,9 @@ export default function VideoGrid({
   onLocalVideoRef,
   localOverlay,
 }: VideoGridProps) {
+  const totalTiles = (localStream ? 1 : 0) + remoteStreams.size;
+  const colsClass = useMemo(() => gridColsClass(totalTiles), [totalTiles]);
+
   return (
     <section className="flex h-full w-full flex-col gap-3 p-3" aria-label="Video grid">
       {error && (
@@ -37,7 +48,7 @@ export default function VideoGrid({
         {isConnected ? 'Connected to signaling server' : 'Connecting to signaling server...'}
       </div>
 
-      <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-2">
+      <div className={`grid flex-1 gap-3 ${colsClass}`}>
         {localStream ? (
           <VideoTile
             peerId={localPeerId}
@@ -53,7 +64,6 @@ export default function VideoGrid({
           </div>
         )}
 
-        {(() => { if (remoteStreams.size > 0) console.log(`[VideoGrid] Rendering ${remoteStreams.size} remote stream(s)`); return null; })()}
         {Array.from(remoteStreams.entries()).map(([peerId, stream]) => (
           <VideoTile
             key={peerId}

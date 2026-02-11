@@ -79,8 +79,8 @@ export default function RoomPage() {
 
   return (
     <AppShell>
-      <section className="flex flex-1 flex-col" aria-label="Video call area">
-        <div className="relative flex flex-1 items-center justify-center">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden" aria-label="Video call area">
+        <div className="relative min-h-0 flex-1 overflow-auto">
           <VideoGrid
             localPeerId={localPeerId}
             localDisplayName={displayName}

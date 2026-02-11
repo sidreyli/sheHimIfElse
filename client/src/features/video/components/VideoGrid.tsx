@@ -37,7 +37,7 @@ export default function VideoGrid({
   const colsClass = useMemo(() => gridColsClass(totalTiles), [totalTiles]);
 
   return (
-    <section className="flex h-full w-full flex-col gap-3 p-3" aria-label="Video grid">
+    <section className="flex h-full w-full min-h-0 flex-col gap-3 overflow-auto p-3" aria-label="Video grid">
       {error && (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           Media error: {error}

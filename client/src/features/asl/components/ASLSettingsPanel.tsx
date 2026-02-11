@@ -1,4 +1,6 @@
 import type { ASLConfig } from '../../../types/asl';
+import { SIGN_LANGUAGES } from '../../../types/asl';
+import type { SignLanguage } from '../../../types/asl';
 
 interface ASLSettingsPanelProps {
   config: ASLConfig;
@@ -8,7 +10,29 @@ interface ASLSettingsPanelProps {
 export default function ASLSettingsPanel({ config, onConfigChange }: ASLSettingsPanelProps) {
   return (
     <fieldset className="space-y-4 rounded-xl border border-surface-600 bg-surface-800 p-4">
-      <legend className="px-2 text-sm font-semibold text-accent-asl">ASL Settings</legend>
+      <legend className="px-2 text-sm font-semibold text-accent-asl">Sign Language Settings</legend>
+
+      {/* Sign language selector */}
+      <div className="space-y-1">
+        <label htmlFor="sign-language-select" className="text-sm text-gray-300">
+          Sign Language
+        </label>
+        <select
+          id="sign-language-select"
+          value={config.signLanguage}
+          onChange={(e) =>
+            onConfigChange({ ...config, signLanguage: e.target.value as SignLanguage })
+          }
+          className="w-full rounded-lg border border-surface-600 bg-surface-700 px-3 py-2 text-sm text-gray-200 focus:border-accent-asl focus:outline-none focus:ring-1 focus:ring-accent-asl"
+          aria-label="Select sign language for recognition"
+        >
+          {SIGN_LANGUAGES.map((sl) => (
+            <option key={sl.code} value={sl.code}>
+              {sl.code} — {sl.name} ({sl.region})
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* Enable/disable toggle */}
       <div className="flex items-center justify-between">

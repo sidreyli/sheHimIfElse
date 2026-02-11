@@ -1,4 +1,5 @@
 import { API_BASE } from '../../../utils/constants';
+import type { SignLanguage } from '../../../types/asl';
 
 /**
  * Captures a JPEG frame from a video element as a base64 string (no data URI prefix).
@@ -65,16 +66,17 @@ export interface LandmarkSnapshot {
 }
 
 /**
- * Send captured frames + landmark data to the server's Gemini-powered ASL recognition endpoint.
+ * Send captured frames + landmark data to the server's Gemini-powered sign language recognition endpoint.
  */
 export async function recognizeASLFromFrames(
   frames: string[],
   landmarkSnapshots?: LandmarkSnapshot[],
+  signLanguage: SignLanguage = 'ASL',
 ): Promise<VisionRecognitionResult> {
   const resp = await fetch(`${API_BASE}/api/asl/recognize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ frames, landmarks: landmarkSnapshots }),
+    body: JSON.stringify({ frames, landmarks: landmarkSnapshots, signLanguage }),
   });
 
   if (!resp.ok) {

@@ -40,6 +40,7 @@ export default function RoomPage() {
     enabled: true,
     confidenceThreshold: 0.6,
     smoothingWindow: 8,
+    signLanguage: 'ASL',
   });
   const asl = useASLVisionPipeline(localVideoRef, aslConfig);
 
@@ -101,7 +102,7 @@ export default function RoomPage() {
         </div>
 
         {/* ASL status bar */}
-        <ASLCaptionBar />
+        <ASLCaptionBar signLanguage={aslConfig.signLanguage} />
 
         <nav className="flex items-center justify-center gap-4 border-t border-surface-700 bg-surface-800 px-4 py-3">
           <MediaControls

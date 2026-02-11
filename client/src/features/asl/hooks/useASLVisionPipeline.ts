@@ -51,7 +51,13 @@ export function useASLVisionPipeline(
   const currentInterval = useRef(BASE_RECOGNITION_INTERVAL);
   /** Collects landmark snapshots alongside frame captures */
   const pendingLandmarks = useRef<LandmarkSnapshot[]>([]);
+  const signLanguageRef = useRef(config.signLanguage);
   const LANDMARK_THROTTLE = 50; // ms
+
+  // Keep ref in sync with config
+  useEffect(() => {
+    signLanguageRef.current = config.signLanguage;
+  }, [config.signLanguage]);
 
   /**
    * Main render loop: detect hands via MediaPipe for the overlay,
@@ -120,7 +126,7 @@ export function useASLVisionPipeline(
               });
             }
 
-            return recognizeASLFromFrames(frames, pendingLandmarks.current);
+            return recognizeASLFromFrames(frames, pendingLandmarks.current, signLanguageRef.current);
           })
           .then((prediction) => {
             recognizingRef.current = false;

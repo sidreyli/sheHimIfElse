@@ -1,8 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { eventBus } from '../../../utils/eventBus';
 import type { ASLPrediction } from '../../../types/asl';
+import type { SignLanguage } from '../../../types/asl';
 
-export default function ASLCaptionBar() {
+interface ASLCaptionBarProps {
+  signLanguage?: SignLanguage;
+}
+
+export default function ASLCaptionBar({ signLanguage = 'ASL' }: ASLCaptionBarProps) {
   const [currentWord, setCurrentWord] = useState<string | null>(null);
   const [wordHistory, setWordHistory] = useState<string[]>([]);
   const [confidence, setConfidence] = useState(0);
@@ -31,12 +36,12 @@ export default function ASLCaptionBar() {
     <div
       role="status"
       aria-live="polite"
-      aria-label="ASL recognition output"
+      aria-label="Sign language recognition output"
       className="flex items-center justify-between border-t border-surface-700 bg-surface-800 px-4 py-2"
     >
       <div className="flex items-center gap-3 overflow-hidden">
         <span className="shrink-0 rounded bg-accent-asl/20 px-2 py-0.5 text-xs font-semibold text-accent-asl">
-          ASL
+          {signLanguage}
         </span>
         <span className="truncate text-sm text-gray-300">
           {wordHistory.length > 0

@@ -2,28 +2,87 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { handleCors } from '../../lib/cors';
 
-const SYSTEM_PROMPT = `You are an expert ASL (American Sign Language) interpreter analyzing video frames from a webcam.
+type SignLanguage = 'ASL' | 'BSL' | 'CSL' | 'ISL' | 'FSL' | 'JSL';
+
+const SIGN_LANGUAGE_NAMES: Record<SignLanguage, string> = {
+  ASL: 'American Sign Language (ASL)',
+  BSL: 'British Sign Language (BSL)',
+  CSL: 'Chinese Sign Language (CSL / 中国手语)',
+  ISL: 'Indian Sign Language (ISL)',
+  FSL: 'French Sign Language (LSF / Langue des Signes Française)',
+  JSL: 'Japanese Sign Language (JSL / 日本手話)',
+};
+
+const SIGN_LANGUAGE_DETAILS: Record<SignLanguage, string> = {
+  ASL: `ASL-specific guidance:
+- ASL uses a one-handed fingerspelling alphabet
+- Many signs use Non-Manual Signals (facial expressions, mouth shapes)
+- Dominant hand is typically the right hand
+- Common signs involve locations near the face, chest, and neutral signing space`,
+  BSL: `BSL-specific guidance:
+- BSL uses a TWO-handed fingerspelling alphabet — this is the key differentiator from ASL
+- BSL is completely distinct from ASL despite both being used in English-speaking countries
+- Many BSL signs are formed with both hands active
+- Location, handshape, movement, and orientation all matter
+- Do NOT confuse BSL signs with ASL signs — they are entirely different languages`,
+  CSL: `CSL-specific guidance:
+- Chinese Sign Language uses a one-handed fingerspelling system based on pinyin initials
+- Many CSL signs incorporate iconic/pictographic elements reflecting Chinese culture
+- Mouth shapes often correspond to Chinese word pronunciation
+- CSL has regional variations between northern and southern China
+- Do NOT confuse with ASL, JSL, or other Asian sign languages`,
+  ISL: `ISL-specific guidance:
+- Indian Sign Language has its own unique grammar and vocabulary
+- ISL uses a one-handed fingerspelling alphabet (based on Devanagari and English)
+- Many signs involve culturally specific gestures from Indian context
+- ISL is distinct from both ASL and BSL
+- Do NOT confuse with British Sign Language despite historical connections`,
+  FSL: `FSL (LSF) specific guidance:
+- French Sign Language is the historical ancestor of ASL, but they have diverged significantly
+- LSF uses its own fingerspelling system
+- Many signs are two-handed
+- French Sign Language has its own unique grammar structure
+- Some signs may look similar to ASL due to shared heritage, but interpret strictly as FSL`,
+  JSL: `JSL-specific guidance:
+- Japanese Sign Language uses fingerspelling based on Japanese kana syllabary
+- JSL has its own grammar distinct from spoken Japanese
+- Many signs incorporate elements from kanji (Chinese characters)
+- Facial expressions and mouth movements play an important role
+- Do NOT confuse with CSL or other Asian sign languages — JSL is completely distinct`,
+};
+
+function buildSystemPrompt(signLanguage: SignLanguage): string {
+  const fullName = SIGN_LANGUAGE_NAMES[signLanguage] || SIGN_LANGUAGE_NAMES.ASL;
+  const details = SIGN_LANGUAGE_DETAILS[signLanguage] || SIGN_LANGUAGE_DETAILS.ASL;
+
+  return `You are an expert ${fullName} interpreter analyzing video frames from a webcam.
+
+IMPORTANT: You must interpret signs STRICTLY according to ${fullName}. Do NOT use knowledge from other sign languages. Each sign language is a completely independent language with its own vocabulary, grammar, and handshapes.
 
 You receive:
 1. Video frames (images) showing the signer
 2. Structured hand/body landmark data from MediaPipe (JSON) — this gives you precise 3D coordinates of each hand joint and body position across time
 
-Your task: Identify the ASL sign being performed.
+Your task: Identify the ${fullName} sign being performed.
+
+${details}
 
 How to use the landmark data:
 - Each snapshot has "hands" (array of hands, each with 21 3D landmarks), "handedness" (Left/Right), and optional "pose" (upper body joints)
 - Multiple snapshots show motion over time — compare them to detect movement direction, speed, and trajectory
-- Hand shape (finger positions relative to palm) + location (near face, chest, etc.) + movement = ASL sign
-- Fingerspelling: single hand near face, rapid small movements between letters
+- Hand shape (finger positions relative to palm) + location (near face, chest, etc.) + movement = sign
+- Fingerspelling: look for characteristic patterns of ${fullName} specifically
 
 Rules:
 - Respond with ONLY a JSON object: {"sign": "<word or short phrase>", "confidence": <0.0-1.0>}
-- If you can clearly identify a sign, return it with high confidence
-- If you see a hand but can't determine the sign, return {"sign": "", "confidence": 0}
+- If you can clearly identify a sign in ${fullName}, return it with high confidence
+- If you see a hand but can't determine the ${fullName} sign, return {"sign": "", "confidence": 0}
 - If no hands are visible, return {"sign": "", "confidence": 0}
-- Consider the motion across frames and landmark snapshots — ASL signs often involve movement
+- Consider the motion across frames and landmark snapshots — signs often involve movement
 - Be concise: return single words or very short phrases only
-- Do NOT explain or include extra text — JSON only`;
+- Do NOT explain or include extra text — JSON only
+- ONLY interpret as ${fullName} — never fall back to another sign language`;
+}
 
 let genAI: GoogleGenerativeAI | null = null;
 
@@ -44,13 +103,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { frames, landmarks } = req.body as { frames: string[]; landmarks?: any[] };
+    const { frames, landmarks, signLanguage: reqSignLanguage } = req.body as { frames: string[]; landmarks?: any[]; signLanguage?: string };
 
     if (!frames || !Array.isArray(frames) || frames.length === 0) {
       return res.status(400).json({ error: 'No frames provided' });
     }
 
+    // Validate and default sign language
+    const validLanguages: SignLanguage[] = ['ASL', 'BSL', 'CSL', 'ISL', 'FSL', 'JSL'];
+    const signLanguage: SignLanguage = validLanguages.includes(reqSignLanguage as SignLanguage)
+      ? (reqSignLanguage as SignLanguage)
+      : 'ASL';
+
     const selectedFrames = frames.slice(0, 5);
+    const systemPrompt = buildSystemPrompt(signLanguage);
+    const fullName = SIGN_LANGUAGE_NAMES[signLanguage];
 
     const ai = getGenAI();
     const model = ai.getGenerativeModel({
@@ -82,9 +149,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const result = await model.generateContent([
-      SYSTEM_PROMPT,
+      systemPrompt,
       ...imageParts,
-      `What ASL sign is being performed? ${landmarkContext ? 'Use both the images AND the landmark data below to identify the sign.' : 'Respond with JSON only.'}${landmarkContext}\n\nRespond with JSON only.`,
+      `What ${fullName} sign is being performed? ${landmarkContext ? 'Use both the images AND the landmark data below to identify the sign.' : 'Respond with JSON only.'}${landmarkContext}\n\nRespond with JSON only.`,
     ]);
 
     const text = result.response.text().trim();
@@ -103,7 +170,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (err: any) {
     const msg = err.message || String(err);
-    console.error('[ASL Vision] Error:', msg);
+    console.error(`[${(req.body as any)?.signLanguage || 'ASL'} Vision] Error:`, msg);
 
     if (msg.includes('429') || msg.includes('Too Many Requests') || msg.includes('quota')) {
       return res.status(429).json({ error: 'Rate limited — please wait before retrying', retryAfter: 30 });

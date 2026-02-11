@@ -1,0 +1,15 @@
+{
+  "name": "signconnect",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "build": "cd client && npm install && npm run build",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@upstash/redis": "^1.34.3",
+    "@vercel/node": "^3.2.0"
+  }
+}

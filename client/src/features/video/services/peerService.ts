@@ -1,5 +1,5 @@
 import Peer from 'peerjs/dist/bundler.cjs';
-import { PEER_HOST, PEER_PATH, PEER_PORT } from '../../../utils/constants';
+import { PEER_CLOUD, PEER_HOST, PEER_PATH, PEER_PORT, PEER_SECURE } from '../../../utils/constants';
 
 let peerInstance: Peer | null = null;
 
@@ -14,9 +14,9 @@ export function createPeer(id: string): Peer {
 
   peerInstance = new Peer(id, {
     host: PEER_HOST,
-    port: PEER_PORT,
+    port: PEER_CLOUD ? 443 : PEER_PORT,
     path: PEER_PATH,
-    secure: false,
+    secure: PEER_SECURE,
   });
 
   return peerInstance;

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { ChatMessage } from '../../../types';
+import type { ASLPrediction } from '../../../types/asl';
+import type { TranscriptEntry } from '../../../types/speech';
 import type { MediaConnection } from 'peerjs';
 import type { DataConnection } from 'peerjs';
 import { useRoomContext } from '../../../contexts/RoomContext';
@@ -8,7 +10,9 @@ import { createPeer, destroyPeer, getPeer } from '../services/peerService';
 
 type PeerPayload =
   | { type: 'room:presence'; data: { displayName: string } }
-  | { type: 'chat:message'; data: ChatMessage };
+  | { type: 'chat:message'; data: ChatMessage }
+  | { type: 'asl:recognized'; data: ASLPrediction }
+  | { type: 'stt:result'; data: TranscriptEntry };
 
 interface UsePeerConnectionParams {
   roomId: string;
@@ -94,6 +98,12 @@ export function usePeerConnection({
         }
         if (payload.type === 'chat:message') {
           onChatMessage(payload.data);
+        }
+        if (payload.type === 'asl:recognized') {
+          eventBus.emit('asl:recognized', { ...payload.data, _remote: true });
+        }
+        if (payload.type === 'stt:result') {
+          eventBus.emit('stt:result', { ...payload.data, _remote: true });
         }
       });
 
@@ -239,5 +249,13 @@ export function usePeerConnection({
     });
   }, []);
 
-  return { disconnect, sendChatMessage };
+  const broadcastData = useCallback((payload: PeerPayload) => {
+    dataConnsRef.current.forEach((conn) => {
+      if (conn.open) {
+        conn.send(payload);
+      }
+    });
+  }, []);
+
+  return { disconnect, sendChatMessage, broadcastData };
 }

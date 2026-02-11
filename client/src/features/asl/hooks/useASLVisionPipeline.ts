@@ -4,6 +4,7 @@ import type { ASLConfig } from '../../../types/asl';
 import { eventBus } from '../../../utils/eventBus';
 import { initAllLandmarkers, detectAll, destroyAllLandmarkers } from '../services/mediapipeService';
 import { captureFrameSequence, recognizeASLFromFrames } from '../services/visionService';
+import type { LandmarkSnapshot } from '../services/visionService';
 
 interface UseASLVisionPipelineResult {
   landmarks: NormalizedLandmark[][] | null;
@@ -48,6 +49,8 @@ export function useASLVisionPipeline(
   const handsVisibleRef = useRef(false);
   const consecutiveErrors = useRef(0);
   const currentInterval = useRef(BASE_RECOGNITION_INTERVAL);
+  /** Collects landmark snapshots alongside frame captures */
+  const pendingLandmarks = useRef<LandmarkSnapshot[]>([]);
   const LANDMARK_THROTTLE = 50; // ms
 
   /**
@@ -82,6 +85,18 @@ export function useASLVisionPipeline(
         lastRecognitionTime.current = now;
         setIsRecognizing(true);
 
+        // Take a landmark snapshot right now (before async frame capture)
+        const currentSnapshot: LandmarkSnapshot = {
+          hands: result!.hands!.landmarks.map((hand) =>
+            hand.map((l) => ({ x: +l.x.toFixed(4), y: +l.y.toFixed(4), z: +l.z.toFixed(4) }))
+          ),
+          handedness: result!.hands!.handedness?.map((h) => h[0]?.categoryName || 'Unknown') || [],
+          pose: result?.pose?.landmarks?.[0]?.slice(0, 25).map((l) => ({
+            x: +l.x.toFixed(4), y: +l.y.toFixed(4), z: +l.z.toFixed(4),
+          })),
+        };
+        pendingLandmarks.current = [currentSnapshot];
+
         // Capture frames and send to server (runs async, doesn't block the render loop)
         captureFrameSequence(video, FRAME_COUNT, FRAME_INTERVAL)
           .then((frames) => {
@@ -90,7 +105,22 @@ export function useASLVisionPipeline(
               setIsRecognizing(false);
               return;
             }
-            return recognizeASLFromFrames(frames);
+
+            // Take another snapshot after frame capture to show motion
+            const lateResult = detectAll(video);
+            if (lateResult?.hands?.landmarks?.length) {
+              pendingLandmarks.current.push({
+                hands: lateResult.hands.landmarks.map((hand) =>
+                  hand.map((l) => ({ x: +l.x.toFixed(4), y: +l.y.toFixed(4), z: +l.z.toFixed(4) }))
+                ),
+                handedness: lateResult.hands.handedness?.map((h) => h[0]?.categoryName || 'Unknown') || [],
+                pose: lateResult.pose?.landmarks?.[0]?.slice(0, 25).map((l) => ({
+                  x: +l.x.toFixed(4), y: +l.y.toFixed(4), z: +l.z.toFixed(4),
+                })),
+              });
+            }
+
+            return recognizeASLFromFrames(frames, pendingLandmarks.current);
           })
           .then((prediction) => {
             recognizingRef.current = false;

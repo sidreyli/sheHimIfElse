@@ -1,8 +1,12 @@
-export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const API_BASE = import.meta.env.VITE_API_URL || '';
+export const PEER_CLOUD = import.meta.env.VITE_PEER_CLOUD === 'true';
+
 const DEFAULT_PEER_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 export const PEER_HOST = import.meta.env.VITE_PEER_HOST || DEFAULT_PEER_HOST;
 export const PEER_PORT = Number(import.meta.env.VITE_PEER_PORT || 3001);
 export const PEER_PATH = '/peerjs';
+export const PEER_SECURE =
+  PEER_CLOUD || (typeof window !== 'undefined' && window.location.protocol === 'https:');
 
 export const MAX_PARTICIPANTS = 4;
 

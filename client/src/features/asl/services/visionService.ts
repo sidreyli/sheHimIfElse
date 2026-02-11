@@ -57,16 +57,24 @@ export interface VisionRecognitionResult {
   confidence: number;
 }
 
+/** Compact landmark snapshot for a single frame */
+export interface LandmarkSnapshot {
+  hands: { x: number; y: number; z: number }[][];       // per-hand landmarks
+  handedness: string[];                                   // 'Left' | 'Right' per hand
+  pose?: { x: number; y: number; z: number }[];          // upper body landmarks
+}
+
 /**
- * Send captured frames to the server's Gemini-powered ASL recognition endpoint.
+ * Send captured frames + landmark data to the server's Gemini-powered ASL recognition endpoint.
  */
 export async function recognizeASLFromFrames(
   frames: string[],
+  landmarkSnapshots?: LandmarkSnapshot[],
 ): Promise<VisionRecognitionResult> {
   const resp = await fetch(`${API_BASE}/api/asl/recognize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ frames }),
+    body: JSON.stringify({ frames, landmarks: landmarkSnapshots }),
   });
 
   if (!resp.ok) {

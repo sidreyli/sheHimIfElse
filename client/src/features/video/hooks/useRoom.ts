@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useRoomContext } from '../../../contexts/RoomContext';
 import type { ChatMessage, Participant } from '../../../types';
+import type { ASLPrediction } from '../../../types/asl';
+import type { TranscriptEntry } from '../../../types/speech';
 import { eventBus } from '../../../utils/eventBus';
 import { useChat } from '../../chat/hooks/useChat';
 import { mapMaxParticipants } from '../services/roomService';
@@ -49,7 +51,7 @@ export function useRoom() {
     [addMessage]
   );
 
-  const { disconnect, sendChatMessage } = usePeerConnection({
+  const { disconnect, sendChatMessage, broadcastData } = usePeerConnection({
     roomId,
     localStream,
     displayName,
@@ -108,6 +110,30 @@ export function useRoom() {
     remoteStreams,
     setParticipants,
   ]);
+
+  // Broadcast local ASL/STT results to remote peers (skip remote-originated events)
+  useEffect(() => {
+    const handleAsl = (prediction: ASLPrediction & { _remote?: boolean }) => {
+      if (prediction._remote) return;
+      broadcastData({
+        type: 'asl:recognized',
+        data: { ...prediction, speakerName: displayName } as ASLPrediction,
+      });
+    };
+    const handleStt = (entry: TranscriptEntry & { _remote?: boolean }) => {
+      if (entry._remote) return;
+      broadcastData({
+        type: 'stt:result',
+        data: { ...entry, speakerName: displayName },
+      });
+    };
+    eventBus.on('asl:recognized', handleAsl);
+    eventBus.on('stt:result', handleStt);
+    return () => {
+      eventBus.off('asl:recognized', handleAsl);
+      eventBus.off('stt:result', handleStt);
+    };
+  }, [broadcastData, displayName]);
 
   const sendChat = useCallback(
     (content: string) => {

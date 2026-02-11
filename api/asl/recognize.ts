@@ -1,8 +1,6 @@
-import { Router } from 'express';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
-import { config } from '../config.js';
-
-export const aslRouter = Router();
+import { handleCors } from '../../lib/cors';
 
 const SYSTEM_PROMPT = `You are an expert ASL (American Sign Language) interpreter analyzing video frames from a webcam.
 
@@ -31,15 +29,20 @@ let genAI: GoogleGenerativeAI | null = null;
 
 function getGenAI(): GoogleGenerativeAI {
   if (!genAI) {
-    if (!config.geminiApiKey) {
-      throw new Error('GEMINI_API_KEY is not configured');
-    }
-    genAI = new GoogleGenerativeAI(config.geminiApiKey);
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) throw new Error('GEMINI_API_KEY is not configured');
+    genAI = new GoogleGenerativeAI(key);
   }
   return genAI;
 }
 
-aslRouter.post('/recognize', async (req, res) => {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (handleCors(req, res)) return;
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
     const { frames, landmarks } = req.body as { frames: string[]; landmarks?: any[] };
 
@@ -47,10 +50,7 @@ aslRouter.post('/recognize', async (req, res) => {
       return res.status(400).json({ error: 'No frames provided' });
     }
 
-    // Limit to 5 frames max to keep request fast
     const selectedFrames = frames.slice(0, 5);
-
-    console.log(`[ASL Vision] Processing ${selectedFrames.length} frames (sizes: ${selectedFrames.map(f => f.length).join(', ')} chars)`);
 
     const ai = getGenAI();
     const model = ai.getGenerativeModel({
@@ -63,11 +63,10 @@ aslRouter.post('/recognize', async (req, res) => {
       ],
     });
 
-    // Detect MIME type from base64 header bytes
     const detectMime = (b64: string): string => {
       if (b64.startsWith('/9j/')) return 'image/jpeg';
       if (b64.startsWith('iVBOR')) return 'image/png';
-      return 'image/jpeg'; // default
+      return 'image/jpeg';
     };
 
     const imageParts = selectedFrames.map((base64) => ({
@@ -77,7 +76,6 @@ aslRouter.post('/recognize', async (req, res) => {
       },
     }));
 
-    // Build landmark context string
     let landmarkContext = '';
     if (landmarks && Array.isArray(landmarks) && landmarks.length > 0) {
       landmarkContext = '\n\nMediaPipe landmark data (JSON):\n' + JSON.stringify(landmarks, null, 0);
@@ -91,13 +89,11 @@ aslRouter.post('/recognize', async (req, res) => {
 
     const text = result.response.text().trim();
 
-    // Parse JSON from response (handle markdown code blocks)
     let parsed: { sign: string; confidence: number };
     try {
       const jsonStr = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
       parsed = JSON.parse(jsonStr);
     } catch {
-      console.warn('[ASL Vision] Failed to parse Gemini response:', text);
       parsed = { sign: '', confidence: 0 };
     }
 
@@ -109,12 +105,10 @@ aslRouter.post('/recognize', async (req, res) => {
     const msg = err.message || String(err);
     console.error('[ASL Vision] Error:', msg);
 
-    // Forward 429 status so the client can back off
     if (msg.includes('429') || msg.includes('Too Many Requests') || msg.includes('quota')) {
       return res.status(429).json({ error: 'Rate limited — please wait before retrying', retryAfter: 30 });
     }
 
     res.status(500).json({ error: msg });
   }
-});
-
+}

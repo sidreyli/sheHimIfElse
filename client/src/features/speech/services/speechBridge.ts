@@ -14,6 +14,16 @@ function handleAslRecognized(prediction: { letter: string }) {
   }
 }
 
+function handleSttResult(entry: { text: string; isFinal: boolean }) {
+  if (!ttsEnabled) {
+    return;
+  }
+
+  if (entry?.text && entry.isFinal) {
+    speakService(entry.text);
+  }
+}
+
 function handleTtsSpeak(payload: { text: string }) {
   if (!ttsEnabled) {
     return;
@@ -31,6 +41,7 @@ export function initSpeechBridge() {
 
   initialized = true;
   eventBus.on('asl:recognized', handleAslRecognized);
+  eventBus.on('stt:result', handleSttResult);
   eventBus.on('tts:speak', handleTtsSpeak);
 }
 

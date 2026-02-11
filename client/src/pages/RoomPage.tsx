@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AppShell from '../components/Layout/AppShell';
 import { VideoGrid, MediaControls, useRoom } from '../features/video';
@@ -45,6 +45,22 @@ export default function RoomPage() {
 
   // Speech pipeline
   const speech = useSpeechPipeline();
+
+  // Disable TTS when mic is off, enable when mic is on
+  const savedSpeechMode = useRef(speech.mode);
+  useEffect(() => {
+    if (!micEnabled) {
+      savedSpeechMode.current = speech.mode;
+      if (speech.mode === 'tts' || speech.mode === 'both') {
+        speech.setMode('off');
+      }
+      speech.tts.stop();
+    } else {
+      if (savedSpeechMode.current === 'tts' || savedSpeechMode.current === 'both') {
+        speech.setMode(savedSpeechMode.current);
+      }
+    }
+  }, [micEnabled]);
 
   // Attach localVideoRef to the first video element when localStream is available
   // We use a callback ref pattern in VideoGrid's local tile
@@ -178,7 +194,7 @@ export default function RoomPage() {
           aria-labelledby="tab-chat"
           className={`flex flex-1 flex-col overflow-hidden ${activeTab !== 'chat' ? 'hidden' : ''}`}
         >
-          <ChatPanel messages={chatMessages} onSend={sendChat} />
+          <ChatPanel messages={chatMessages} onSend={sendChat} micEnabled={micEnabled} speakText={speech.tts.speak} />
         </div>
 
         <div

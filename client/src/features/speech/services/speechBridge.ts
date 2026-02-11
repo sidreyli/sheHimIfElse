@@ -1,8 +1,10 @@
 import { eventBus } from '../../../utils/eventBus';
+import type { TTSConfig } from '../../../types/speech';
 import { speak as speakService } from './ttsService';
 
 let initialized = false;
 let ttsEnabled = false;
+let ttsConfig: Partial<TTSConfig> = {};
 
 function handleAslRecognized(prediction: { letter: string }) {
   if (!ttsEnabled) {
@@ -10,7 +12,7 @@ function handleAslRecognized(prediction: { letter: string }) {
   }
 
   if (prediction?.letter) {
-    speakService(prediction.letter);
+    speakService(prediction.letter, ttsConfig);
   }
 }
 
@@ -30,7 +32,7 @@ function handleTtsSpeak(payload: { text: string }) {
   }
 
   if (payload?.text) {
-    speakService(payload.text);
+    speakService(payload.text, ttsConfig);
   }
 }
 
@@ -47,4 +49,8 @@ export function initSpeechBridge() {
 
 export function setTTSEnabled(enabled: boolean) {
   ttsEnabled = enabled;
+}
+
+export function setTTSConfig(config: Partial<TTSConfig>) {
+  ttsConfig = config;
 }

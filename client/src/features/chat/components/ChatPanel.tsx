@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { ChatMessage } from '../../../types';
 import MessageList, { type FeedItem } from './MessageList';
 import MessageInput from './MessageInput';
-import { eventBus } from '../../../utils/eventBus';
 
 const HARDCODED_MESSAGES: ChatMessage[] = [
   {
@@ -42,16 +41,20 @@ const HARDCODED_MESSAGES: ChatMessage[] = [
 interface ChatPanelProps {
   messages?: ChatMessage[];
   onSend?: (content: string) => void;
+  micEnabled?: boolean;
+  speakText?: (text: string) => void;
 }
 
-export default function ChatPanel({ messages, onSend }: ChatPanelProps) {
+export default function ChatPanel({ messages, onSend, micEnabled = true, speakText }: ChatPanelProps) {
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>(HARDCODED_MESSAGES);
 
   const displayMessages = messages ?? localMessages;
 
   function handleSend(content: string) {
-    // Read the typed message aloud via TTS
-    eventBus.emit('tts:speak', { text: content });
+    // Read the typed message aloud via TTS only when mic is on
+    if (micEnabled && speakText) {
+      speakText(content);
+    }
 
     if (onSend) {
       onSend(content);

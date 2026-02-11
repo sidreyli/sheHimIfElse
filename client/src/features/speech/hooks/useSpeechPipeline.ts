@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { initSpeechBridge, setTTSEnabled } from '../services/speechBridge';
+import { initSpeechBridge, setTTSEnabled, setTTSConfig } from '../services/speechBridge';
 import { useSpeechToText } from './useSpeechToText';
 import { useTextToSpeech } from './useTextToSpeech';
 
@@ -30,11 +30,12 @@ export function useSpeechPipeline() {
     const ttsEnabled = mode === 'tts' || mode === 'both';
 
     setTTSEnabled(ttsEnabled && tts.config.enabled);
+    setTTSConfig(tts.config);
 
     if (!ttsEnabled) {
       stopTTS();
     }
-  }, [mode, stopTTS, tts.config.enabled]);
+  }, [mode, stopTTS, tts.config]);
 
   useEffect(() => {
     return () => {

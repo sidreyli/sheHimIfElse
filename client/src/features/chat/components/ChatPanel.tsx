@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ChatMessage } from '../../../types';
 import MessageList, { type FeedItem } from './MessageList';
 import MessageInput from './MessageInput';
+import { eventBus } from '../../../utils/eventBus';
 
 const HARDCODED_MESSAGES: ChatMessage[] = [
   {
@@ -49,6 +50,9 @@ export default function ChatPanel({ messages, onSend }: ChatPanelProps) {
   const displayMessages = messages ?? localMessages;
 
   function handleSend(content: string) {
+    // Read the typed message aloud via TTS
+    eventBus.emit('tts:speak', { text: content });
+
     if (onSend) {
       onSend(content);
       return;

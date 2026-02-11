@@ -2,7 +2,7 @@
 
 Multimodal assistive communication platform that bridges video calling, American Sign Language recognition, speech processing, and text chat into one unified experience.
 
-Proud to announce that the website is hosted live using multiple technologies such as vercel, render, upstash reddit and metered (which has rate limits)
+Proud to announce that the website is hosted live using multiple technologies such as vercel, render, upstash redis and metered (which has rate limits)
 live link @ https://she-him-if-else.vercel.app
 
 Built for the **Beyond Binary** hackathon.

@@ -64,6 +64,124 @@ body.sc-high-contrast :focus-visible {
   outline-width: 3px;
 }
 
+/* Color-blind mode: profile + intensity are provided via runtime CSS variables */
+body.sc-color-blind {
+  --sc-accent-chat-rgb: 96, 165, 250;
+  --sc-accent-asl-rgb: 52, 211, 153;
+  --sc-accent-stt-rgb: 251, 191, 36;
+}
+
+body.sc-color-blind .text-accent-chat,
+body.sc-color-blind .source-chat {
+  color: rgb(var(--sc-accent-chat-rgb)) !important;
+}
+
+body.sc-color-blind .text-accent-asl,
+body.sc-color-blind .source-asl {
+  color: rgb(var(--sc-accent-asl-rgb)) !important;
+}
+
+body.sc-color-blind .text-accent-stt,
+body.sc-color-blind .source-stt {
+  color: rgb(var(--sc-accent-stt-rgb)) !important;
+}
+
+body.sc-color-blind .bg-accent-chat {
+  background-color: rgb(var(--sc-accent-chat-rgb)) !important;
+}
+
+body.sc-color-blind .bg-accent-asl {
+  background-color: rgb(var(--sc-accent-asl-rgb)) !important;
+}
+
+body.sc-color-blind .bg-accent-stt {
+  background-color: rgb(var(--sc-accent-stt-rgb)) !important;
+}
+
+body.sc-color-blind .border-accent-chat {
+  border-color: rgb(var(--sc-accent-chat-rgb)) !important;
+}
+
+body.sc-color-blind .border-accent-asl {
+  border-color: rgb(var(--sc-accent-asl-rgb)) !important;
+}
+
+body.sc-color-blind .border-accent-stt {
+  border-color: rgb(var(--sc-accent-stt-rgb)) !important;
+}
+
+body.sc-color-blind .bg-accent-chat\/10 {
+  background-color: rgba(var(--sc-accent-chat-rgb), 0.16) !important;
+}
+
+body.sc-color-blind .bg-accent-chat\/20 {
+  background-color: rgba(var(--sc-accent-chat-rgb), 0.24) !important;
+}
+
+body.sc-color-blind .bg-accent-asl\/10 {
+  background-color: rgba(var(--sc-accent-asl-rgb), 0.16) !important;
+}
+
+body.sc-color-blind .bg-accent-asl\/20 {
+  background-color: rgba(var(--sc-accent-asl-rgb), 0.24) !important;
+}
+
+body.sc-color-blind .bg-accent-stt\/10 {
+  background-color: rgba(var(--sc-accent-stt-rgb), 0.16) !important;
+}
+
+body.sc-color-blind .bg-accent-stt\/20 {
+  background-color: rgba(var(--sc-accent-stt-rgb), 0.24) !important;
+}
+
+body.sc-color-blind .border-accent-chat\/30 {
+  border-color: rgba(var(--sc-accent-chat-rgb), 0.45) !important;
+}
+
+body.sc-color-blind .border-accent-chat\/40 {
+  border-color: rgba(var(--sc-accent-chat-rgb), 0.52) !important;
+}
+
+body.sc-color-blind .border-accent-asl\/30 {
+  border-color: rgba(var(--sc-accent-asl-rgb), 0.45) !important;
+}
+
+body.sc-color-blind .border-accent-asl\/40 {
+  border-color: rgba(var(--sc-accent-asl-rgb), 0.52) !important;
+}
+
+body.sc-color-blind .border-accent-stt\/30 {
+  border-color: rgba(var(--sc-accent-stt-rgb), 0.45) !important;
+}
+
+body.sc-color-blind .border-accent-stt\/40 {
+  border-color: rgba(var(--sc-accent-stt-rgb), 0.52) !important;
+}
+
+body.sc-color-blind .focus-visible\:outline-accent-chat:focus-visible {
+  outline-color: rgb(var(--sc-accent-chat-rgb)) !important;
+}
+
+body.sc-color-blind .focus-visible\:outline-accent-asl:focus-visible {
+  outline-color: rgb(var(--sc-accent-asl-rgb)) !important;
+}
+
+body.sc-color-blind .focus-visible\:outline-accent-stt:focus-visible {
+  outline-color: rgb(var(--sc-accent-stt-rgb)) !important;
+}
+
+body.sc-color-blind .accent-accent-chat {
+  accent-color: rgb(var(--sc-accent-chat-rgb)) !important;
+}
+
+body.sc-color-blind .accent-accent-asl {
+  accent-color: rgb(var(--sc-accent-asl-rgb)) !important;
+}
+
+body.sc-color-blind .accent-accent-stt {
+  accent-color: rgb(var(--sc-accent-stt-rgb)) !important;
+}
+
 /* Source color coding utility classes */
 .source-chat { color: theme('colors.accent.chat'); }
 .source-asl { color: theme('colors.accent.asl'); }

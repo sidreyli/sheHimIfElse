@@ -6,8 +6,13 @@ let initialized = false;
 let ttsEnabled = false;
 let ttsConfig: Partial<TTSConfig> = {};
 
-function handleAslRecognized(prediction: { letter: string }) {
+function handleAslRecognized(prediction: { letter: string; _remote?: boolean }) {
   if (!ttsEnabled) {
+    return;
+  }
+
+  // Only speak remote ASL — don't echo the local user's own signs
+  if (!prediction._remote) {
     return;
   }
 
@@ -16,8 +21,13 @@ function handleAslRecognized(prediction: { letter: string }) {
   }
 }
 
-function handleSttResult(entry: { text: string; isFinal: boolean }) {
+function handleSttResult(entry: { text: string; isFinal: boolean; _remote?: boolean }) {
   if (!ttsEnabled) {
+    return;
+  }
+
+  // Only speak remote STT — don't read back the local user's own speech
+  if (!entry._remote) {
     return;
   }
 

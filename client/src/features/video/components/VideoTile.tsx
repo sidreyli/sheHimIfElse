@@ -33,9 +33,39 @@ export default function VideoTile({ peerId, stream, displayName, muted = false, 
 
     videoRefs.current?.set(peerId, video);
     onVideoRef?.(video);
+
+    // Recover from track ended / muted states (remote freeze fix)
+    const videoTracks = stream.getVideoTracks();
+    const handleTrackEvent = () => {
+      const track = videoTracks[0];
+      if (!track || track.readyState === 'ended') {
+        console.warn(`[VideoTile] Track ended for ${peerId.slice(-6)}, detaching`);
+        return;
+      }
+      // Re-trigger play if track becomes live again
+      if (!video.paused) return;
+      void video.play().catch(() => {});
+    };
+
+    videoTracks.forEach((track) => {
+      track.addEventListener('unmute', handleTrackEvent);
+      track.addEventListener('ended', handleTrackEvent);
+    });
+
+    // Also listen for stream-level removal/addition
+    const handleRemoveTrack = () => {
+      console.warn(`[VideoTile] Track removed for ${peerId.slice(-6)}`);
+    };
+    stream.addEventListener('removetrack', handleRemoveTrack);
+
     return () => {
       videoRefs.current?.delete(peerId);
       onVideoRef?.(null);
+      videoTracks.forEach((track) => {
+        track.removeEventListener('unmute', handleTrackEvent);
+        track.removeEventListener('ended', handleTrackEvent);
+      });
+      stream.removeEventListener('removetrack', handleRemoveTrack);
     };
   }, [peerId, stream, videoRefs, onVideoRef]);
 

@@ -53,6 +53,9 @@ export function useASLVisionPipeline(
   const pendingLandmarks = useRef<LandmarkSnapshot[]>([]);
   const signLanguageRef = useRef(config.signLanguage);
   const LANDMARK_THROTTLE = 50; // ms
+  /** Throttle MediaPipe detection to ~15 fps to reduce GPU/main-thread load */
+  const DETECTION_INTERVAL = 66; // ms (~15 fps)
+  const lastDetectionTime = useRef(0);
 
   // Keep ref in sync with config
   useEffect(() => {
@@ -72,13 +75,20 @@ export function useASLVisionPipeline(
       return;
     }
 
+    // Throttle detection to ~15 fps to avoid starving WebRTC video decoding
+    const now = performance.now();
+    if (now - lastDetectionTime.current < DETECTION_INTERVAL) {
+      rafId.current = requestAnimationFrame(processFrame);
+      return;
+    }
+    lastDetectionTime.current = now;
+
     // Run MediaPipe hand detection for overlay
     const result = detectAll(video);
     const handsDetected = result?.hands?.landmarks && result.hands.landmarks.length > 0;
 
     if (handsDetected) {
       handsVisibleRef.current = true;
-      const now = performance.now();
       if (now - lastLandmarkUpdate.current >= LANDMARK_THROTTLE) {
         lastLandmarkUpdate.current = now;
         setLandmarks(result!.hands!.landmarks);

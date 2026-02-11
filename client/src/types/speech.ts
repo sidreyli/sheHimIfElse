@@ -5,6 +5,7 @@ export interface TranscriptEntry {
   speakerName: string;
   isFinal: boolean;
   timestamp: number;
+  _remote?: boolean;
 }
 
 export interface TTSConfig {

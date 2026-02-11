@@ -9,6 +9,7 @@ export interface ASLPrediction {
   confidence: number;
   landmarks: HandLandmark[];
   timestamp: number;
+  _remote?: boolean;
 }
 
 export interface ASLConfig {
